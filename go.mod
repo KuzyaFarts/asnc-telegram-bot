@@ -1,4 +1,4 @@
-module github.com/Honeynil/asnc-telegram-bot
+module github.com/KuzyaFarts/asnc-telegram-bot
 
 go 1.25.0
 

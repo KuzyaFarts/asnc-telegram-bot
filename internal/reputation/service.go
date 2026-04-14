@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Honeynil/asnc-telegram-bot/internal/storage"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/storage"
 )
 
 type Reason string

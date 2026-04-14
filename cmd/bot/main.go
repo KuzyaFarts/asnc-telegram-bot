@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Honeynil/asnc-telegram-bot/internal/config"
-	"github.com/Honeynil/asnc-telegram-bot/internal/reputation"
-	"github.com/Honeynil/asnc-telegram-bot/internal/storage"
-	"github.com/Honeynil/asnc-telegram-bot/internal/tgbot"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/config"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/reputation"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/storage"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/tgbot"
 )
 
 func main() {

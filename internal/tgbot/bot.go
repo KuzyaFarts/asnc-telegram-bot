@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-telegram/bot"
 
-	"github.com/Honeynil/asnc-telegram-bot/internal/reputation"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/reputation"
 )
 
 type Bot struct {
