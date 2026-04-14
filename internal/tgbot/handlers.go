@@ -135,10 +135,14 @@ func (tb *Bot) onPremiddle(ctx context.Context, b *bot.Bot, u *models.Update) {
 	until := time.Now().Add(duration).Unix()
 
 	_, err := b.RestrictChatMember(ctx, &bot.RestrictChatMemberParams{
-		ChatID:      msg.Chat.ID,
-		UserID:      msg.From.ID,
-		Permissions: &models.ChatPermissions{},
-		UntilDate:   int(until),
+		ChatID: msg.Chat.ID,
+		UserID: msg.From.ID,
+		Permissions: &models.ChatPermissions{
+			CanSendPhotos:        true,
+			CanSendVideos:        true,
+			CanSendOtherMessages: true,
+		},
+		UntilDate: int(until),
 	})
 	if err != nil {
 		log.Printf("onPremiddle: RestrictChatMember: %v", err)
