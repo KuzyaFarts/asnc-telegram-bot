@@ -131,18 +131,16 @@ func (tb *Bot) onPremiddle(ctx context.Context, b *bot.Bot, u *models.Update) {
 	}
 	tb.rememberParticipants(ctx, msg)
 
-	duration := time.Duration(rand.Int31n(30)) * time.Minute
+	duration := time.Duration(rand.Int31n(29)+1) * time.Minute
 	until := time.Now().Add(duration).Unix()
 
 	_, err := b.RestrictChatMember(ctx, &bot.RestrictChatMemberParams{
 		ChatID: msg.Chat.ID,
 		UserID: msg.From.ID,
-		Permissions: &models.ChatPermissions{
-			CanSendPhotos:        true,
-			CanSendVideos:        true,
-			CanSendOtherMessages: true,
-		},
-		UntilDate: int(until),
+		// TODO(dami): add CanSendOtherMessages permission after bug fix
+		// See: https://github.com/go-telegram/bot/issues/271
+		Permissions: &models.ChatPermissions{},
+		UntilDate:   int(until),
 	})
 	if err != nil {
 		log.Printf("onPremiddle: RestrictChatMember: %v", err)
