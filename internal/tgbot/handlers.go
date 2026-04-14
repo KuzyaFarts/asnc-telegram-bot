@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"log"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -130,7 +131,8 @@ func (tb *Bot) onPremiddle(ctx context.Context, b *bot.Bot, u *models.Update) {
 	}
 	tb.rememberParticipants(ctx, msg)
 
-	until := time.Now().Add(5 * time.Minute).Unix()
+	duration := time.Duration(rand.Int31n(30)) * time.Minute
+	until := time.Now().Add(duration).Unix()
 
 	_, err := b.RestrictChatMember(ctx, &bot.RestrictChatMemberParams{
 		ChatID:      msg.Chat.ID,
@@ -145,7 +147,7 @@ func (tb *Bot) onPremiddle(ctx context.Context, b *bot.Bot, u *models.Update) {
 		return
 	}
 	sendEphemeral(ctx, b, msg.Chat.ID, msg.ID,
-		fmt.Sprintf("🤐 %s замучен до <b>%v</b>. Сам виноват.", mentionHTML(msg.From), time.Unix(until, 0).UTC()),
+		fmt.Sprintf("🤐 %s замучен на <b>%v</b> мин. Сам виноват.", mentionHTML(msg.From), duration),
 		tb.ttl)
 }
 
