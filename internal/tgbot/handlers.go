@@ -13,8 +13,8 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
-	"github.com/Honeynil/asnc-telegram-bot/internal/reputation"
-	"github.com/Honeynil/asnc-telegram-bot/internal/storage"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/reputation"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/storage"
 )
 
 func (tb *Bot) onMessage(ctx context.Context, b *bot.Bot, u *models.Update) {
@@ -145,7 +145,7 @@ func (tb *Bot) onPremiddle(ctx context.Context, b *bot.Bot, u *models.Update) {
 		return
 	}
 	sendEphemeral(ctx, b, msg.Chat.ID, msg.ID,
-		fmt.Sprintf("🤐 %s замучен на <b>5 минут</b>. Сам виноват.", mentionHTML(msg.From)),
+		fmt.Sprintf("🤐 %s замучен до <b>%v</b>. Сам виноват.", mentionHTML(msg.From), time.Unix(until, 0).UTC()),
 		tb.ttl)
 }
 
