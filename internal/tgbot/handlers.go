@@ -35,7 +35,7 @@ func (tb *Bot) onMessage(ctx context.Context, b *bot.Bot, u *models.Update) {
 		return
 	}
 
-	trig := reputation.Parse(msg.Text)
+	trig := reputation.Parse(msg)
 	if trig == nil {
 		return
 	}

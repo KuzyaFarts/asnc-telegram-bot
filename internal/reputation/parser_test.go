@@ -67,7 +67,7 @@ func TestParse(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.in, func(t *testing.T) {
-			got := Parse(c.in)
+			got := parseText(c.in)
 			if !c.match {
 				if got != nil {
 					t.Fatalf("Parse(%q) = %+v, want nil", c.in, got)
