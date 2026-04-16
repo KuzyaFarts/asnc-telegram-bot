@@ -12,14 +12,32 @@ type Trigger struct {
 	Delta int
 }
 
+type stickerInfo struct {
+	Name  string
+	Value int
+}
+
 var (
-	plusRepStickerIDs = map[string]string{
-		"AgADlYwAArYY6Uo": "MR P.K.",
-		"AgADUKMAAnEM8Uo": "Kopatich",
+	plusRepStickerIDs = map[string]stickerInfo{
+		"AgADlYwAArYY6Uo": {
+			Name:  "MR P.K.",
+			Value: 1,
+		},
+		"AgADUKMAAnEM8Uo": {
+			Name:  "Kopatich",
+			Value: 3,
+		},
 	}
-	minusRepStickerIDs = map[string]string{
-		"AgADTpAAAiB38Eo": "MR P.K.",
-		"AgADWJcAAvBI-Uo": "Losyash",
+	minusRepStickerIDs = map[string]stickerInfo{
+
+		"AgADTpAAAiB38Eo": {
+			Name:  "MR P.K.",
+			Value: -1,
+		},
+		"AgADWJcAAvBI-Uo": {
+			Name:  "Losyash",
+			Value: -3,
+		},
 	}
 )
 
@@ -32,10 +50,10 @@ func Parse(msg *models.Message) *Trigger {
 
 func parseSticker(sticker *models.Sticker) *Trigger {
 	if _, ok := plusRepStickerIDs[sticker.FileUniqueID]; ok {
-		return &Trigger{Delta: 1}
+		return &Trigger{Delta: plusRepStickerIDs[sticker.FileUniqueID].Value}
 	}
 	if _, ok := minusRepStickerIDs[sticker.FileUniqueID]; ok {
-		return &Trigger{Delta: -1}
+		return &Trigger{Delta: minusRepStickerIDs[sticker.FileUniqueID].Value}
 	}
 	return nil
 }
