@@ -21,19 +21,23 @@ var (
 	plusRepStickerIDs = map[string]stickerInfo{
 		"AgADlYwAArYY6Uo": {
 			Name:  "MR P.K.",
-			Value: 1},
+			Value: 1
+		},
 		"AgADUKMAAnEM8Uo": {
 			Name:  "Kopatich",
-			Value: 3},
+			Value: 3
+		},
 	}
 	minusRepStickerIDs = map[string]stickerInfo{
 
 		"AgADTpAAAiB38Eo": {
 			Name:  "MR P.K.",
-			Value: -1},
+			Value: -1
+		},
 		"AgADWJcAAvBI-Uo": {
 			Name:  "Losyash",
-			Value: -3},
+			Value: -3
+		},
 	}
 )
 
