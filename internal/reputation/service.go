@@ -4,43 +4,17 @@ import (
 	"context"
 	"time"
 
-	"github.com/KuzyaFarts/asnc-telegram-bot/internal/storage"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/ports"
 )
-
-type Reason string
-
-const (
-	ReasonOK        Reason = "ok"
-	ReasonSelf      Reason = "self"
-	ReasonBotTarget Reason = "bot_target"
-	ReasonCooldown  Reason = "cooldown"
-	ReasonZeroDelta Reason = "zero_delta"
-)
-
-type Actor struct {
-	UserID      int64
-	Username    string
-	DisplayName string
-	IsBot       bool
-}
-
-type ApplyResult struct {
-	Reason        Reason
-	AppliedDelta  int
-	NewScore      int64
-	PositiveTotal int64
-	NegativeTotal int64
-	CooldownLeft  time.Duration
-}
 
 type Service struct {
-	store    storage.Store
+	store    ports.ReputationRepository
 	cooldown time.Duration
 	maxDelta int
 	now      func() time.Time // для тестов
 }
 
-func New(store storage.Store, cooldown time.Duration, maxDelta int) *Service {
+func New(store ports.ReputationRepository, cooldown time.Duration, maxDelta int) *Service {
 
 	return &Service{
 		store:    store,
@@ -50,19 +24,19 @@ func New(store storage.Store, cooldown time.Duration, maxDelta int) *Service {
 	}
 }
 
-func (s *Service) Apply(ctx context.Context, chatID int64, from, to Actor, rawDelta int) (*ApplyResult, error) {
+func (s *Service) Apply(ctx context.Context, chatID int64, from, to ports.Actor, rawDelta int) (*ports.ApplyResult, error) {
 
 	if from.UserID == to.UserID {
-		return &ApplyResult{Reason: ReasonSelf}, nil
+		return &ports.ApplyResult{Reason: ports.ReasonSelf}, nil
 	}
 
 	if to.IsBot {
-		return &ApplyResult{Reason: ReasonBotTarget}, nil
+		return &ports.ApplyResult{Reason: ports.ReasonBotTarget}, nil
 	}
 
 	delta := clamp(rawDelta, -s.maxDelta, s.maxDelta)
 	if delta == 0 {
-		return &ApplyResult{Reason: ReasonZeroDelta}, nil
+		return &ports.ApplyResult{Reason: ports.ReasonZeroDelta}, nil
 	}
 
 	now := s.now()
@@ -74,8 +48,8 @@ func (s *Service) Apply(ctx context.Context, chatID int64, from, to Actor, rawDe
 		if ok {
 			elapsed := now.Sub(last)
 			if elapsed < s.cooldown {
-				return &ApplyResult{
-					Reason:       ReasonCooldown,
+				return &ports.ApplyResult{
+					Reason:       ports.ReasonCooldown,
 					CooldownLeft: s.cooldown - elapsed,
 				}, nil
 			}
@@ -89,8 +63,8 @@ func (s *Service) Apply(ctx context.Context, chatID int64, from, to Actor, rawDe
 	if err := s.store.TouchCooldown(ctx, chatID, from.UserID, to.UserID, now); err != nil {
 		return nil, err
 	}
-	return &ApplyResult{
-		Reason:        ReasonOK,
+	return &ports.ApplyResult{
+		Reason:        ports.ReasonOK,
 		AppliedDelta:  delta,
 		NewScore:      u.Score,
 		PositiveTotal: u.PositiveGiven,
@@ -98,7 +72,7 @@ func (s *Service) Apply(ctx context.Context, chatID int64, from, to Actor, rawDe
 	}, nil
 }
 
-func (s *Service) GetUser(ctx context.Context, chatID, userID int64) (storage.User, bool, error) {
+func (s *Service) GetUser(ctx context.Context, chatID, userID int64) (ports.User, bool, error) {
 	return s.store.GetUser(ctx, chatID, userID)
 }
 
@@ -106,15 +80,15 @@ func (s *Service) Score(ctx context.Context, chatID, userID int64) (int64, error
 	return s.store.GetScore(ctx, chatID, userID)
 }
 
-func (s *Service) Top(ctx context.Context, chatID int64, n int) ([]storage.User, error) {
+func (s *Service) Top(ctx context.Context, chatID int64, n int) ([]ports.User, error) {
 	return s.store.Top(ctx, chatID, n)
 }
 
-func (s *Service) Remember(ctx context.Context, chatID int64, u storage.KnownUser) error {
+func (s *Service) Remember(ctx context.Context, chatID int64, u ports.KnownUser) error {
 	return s.store.RememberUser(ctx, chatID, u, s.now())
 }
 
-func (s *Service) FindByUsername(ctx context.Context, chatID int64, username string) (storage.KnownUser, bool, error) {
+func (s *Service) FindByUsername(ctx context.Context, chatID int64, username string) (ports.KnownUser, bool, error) {
 	return s.store.FindByUsername(ctx, chatID, username)
 }
 

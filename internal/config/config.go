@@ -11,11 +11,15 @@ import (
 )
 
 type Config struct {
-	BotToken     string
-	DBPath       string
-	Cooldown     time.Duration
-	MaxDelta     int
-	EphemeralTTL time.Duration
+	BotToken      string
+	DBPath        string
+	Cooldown      time.Duration
+	MaxDelta      int
+	EphemeralTTL  time.Duration
+	DailyMin      int64
+	DailyMax      int64
+	DailyCooldown time.Duration
+	DuelTTL       time.Duration
 }
 
 func Load() (*Config, error) {
@@ -52,12 +56,48 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("EPHEMERAL_TTL must be > 0, got %s", ttl)
 	}
 
+	dailyMin, err := envInt("DAILY_MIN", 5)
+	if err != nil {
+		return nil, err
+	}
+	if dailyMin <= 0 {
+		return nil, fmt.Errorf("DAILY_MIN must be > 0, got %d", dailyMin)
+	}
+
+	dailyMax, err := envInt("DAILY_MAX", 20)
+	if err != nil {
+		return nil, err
+	}
+	if dailyMax < dailyMin {
+		return nil, fmt.Errorf("DAILY_MAX must be >= DAILY_MIN, got %d < %d", dailyMax, dailyMin)
+	}
+
+	dailyCooldown, err := envDuration("DAILY_COOLDOWN", 24*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+	if dailyCooldown <= 0 {
+		return nil, fmt.Errorf("DAILY_COOLDOWN must be > 0, got %s", dailyCooldown)
+	}
+
+	duelTTL, err := envDuration("DUEL_TTL", 10*time.Minute)
+	if err != nil {
+		return nil, err
+	}
+	if duelTTL <= 0 {
+		return nil, fmt.Errorf("DUEL_TTL must be > 0, got %s", duelTTL)
+	}
+
 	return &Config{
-		BotToken:     token,
-		DBPath:       dbPath,
-		Cooldown:     time.Duration(cooldownMin) * time.Minute,
-		MaxDelta:     maxDelta,
-		EphemeralTTL: ttl,
+		BotToken:      token,
+		DBPath:        dbPath,
+		Cooldown:      time.Duration(cooldownMin) * time.Minute,
+		MaxDelta:      maxDelta,
+		EphemeralTTL:  ttl,
+		DailyMin:      int64(dailyMin),
+		DailyMax:      int64(dailyMax),
+		DailyCooldown: dailyCooldown,
+		DuelTTL:       duelTTL,
 	}, nil
 }
 

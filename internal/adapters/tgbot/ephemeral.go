@@ -41,11 +41,6 @@ func sendEphemeral(ctx context.Context, b *bot.Bot, chatID int64, replyTo int, h
 }
 
 func reactThumb(ctx context.Context, b *bot.Bot, chatID int64, msgID int, positive bool) error {
-
-	emoji := "🤡"
-	if positive {
-		emoji = "🧠"
-	}
 	_, err := b.SetMessageReaction(ctx, &bot.SetMessageReactionParams{
 		ChatID:    chatID,
 		MessageID: msgID,
@@ -53,9 +48,16 @@ func reactThumb(ctx context.Context, b *bot.Bot, chatID int64, msgID int, positi
 			Type: models.ReactionTypeTypeEmoji,
 			ReactionTypeEmoji: &models.ReactionTypeEmoji{
 				Type:  models.ReactionTypeTypeEmoji,
-				Emoji: emoji,
+				Emoji: reactionEmoji(positive),
 			},
 		}},
 	})
 	return err
+}
+
+func reactionEmoji(positive bool) string {
+	if positive {
+		return "🥰"
+	}
+	return "🤡"
 }
