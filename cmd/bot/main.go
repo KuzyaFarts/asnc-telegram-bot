@@ -7,10 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/adapters/storage"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/adapters/tgbot"
 	"github.com/KuzyaFarts/asnc-telegram-bot/internal/config"
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/economy"
 	"github.com/KuzyaFarts/asnc-telegram-bot/internal/reputation"
-	"github.com/KuzyaFarts/asnc-telegram-bot/internal/storage"
-	"github.com/KuzyaFarts/asnc-telegram-bot/internal/tgbot"
 )
 
 func main() {
@@ -34,9 +35,15 @@ func main() {
 		log.Fatalf("storage init: %v", err)
 	}
 
-	svc := reputation.New(store, cfg.Cooldown, cfg.MaxDelta)
+	repSvc := reputation.New(store, cfg.Cooldown, cfg.MaxDelta)
+	economySvc := economy.New(store, repSvc, economy.Settings{
+		DailyCooldown: cfg.DailyCooldown,
+		DailyMin:      cfg.DailyMin,
+		DailyMax:      cfg.DailyMax,
+		DuelTTL:       cfg.DuelTTL,
+	})
 
-	tb, err := tgbot.New(cfg.BotToken, svc, cfg.EphemeralTTL)
+	tb, err := tgbot.New(cfg.BotToken, repSvc, economySvc, cfg.EphemeralTTL)
 	if err != nil {
 		log.Fatalf("bot: %v", err)
 	}

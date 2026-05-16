@@ -14,8 +14,8 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
+	"github.com/KuzyaFarts/asnc-telegram-bot/internal/ports"
 	"github.com/KuzyaFarts/asnc-telegram-bot/internal/reputation"
-	"github.com/KuzyaFarts/asnc-telegram-bot/internal/storage"
 )
 
 func (tb *Bot) onMessage(ctx context.Context, b *bot.Bot, u *models.Update) {
@@ -35,7 +35,7 @@ func (tb *Bot) onMessage(ctx context.Context, b *bot.Bot, u *models.Update) {
 		return
 	}
 
-	trig := reputation.Parse(msg)
+	trig := parseReputationTrigger(msg)
 	if trig == nil {
 		return
 	}
@@ -90,15 +90,34 @@ func (tb *Bot) onTop(ctx context.Context, b *bot.Bot, u *models.Update) {
 	}
 	tb.rememberParticipants(ctx, msg)
 
-	users, err := tb.svc.Top(ctx, msg.Chat.ID, 10)
+	args, _ := commandArgs(msg.Text)
+	if len(args) > 0 {
+		switch strings.ToLower(args[0]) {
+		case "coin", "coins", "bank", "balance":
+			tb.sendCoinTop(ctx, b, msg)
+			return
+		case "rep", "reputation":
+		default:
+			sendEphemeral(ctx, b, msg.Chat.ID, msg.ID, "Использование: <code>/top</code>, <code>/top rep</code> или <code>/top coin</code>.", tb.ttl)
+			return
+		}
+	}
+
+	text, err := tb.reputationTopHTML(ctx, msg.Chat.ID, 10)
 	if err != nil {
 		log.Printf("onTop: Top: %v", err)
 		return
 	}
+	sendEphemeral(ctx, b, msg.Chat.ID, msg.ID, text, tb.ttl)
+}
+
+func (tb *Bot) reputationTopHTML(ctx context.Context, chatID int64, limit int) (string, error) {
+	users, err := tb.svc.Top(ctx, chatID, limit)
+	if err != nil {
+		return "", err
+	}
 	if len(users) == 0 {
-		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID,
-			"📭 Пока никто не получал репутации.", tb.ttl)
-		return
+		return "📭 Пока никто не получал репутации.", nil
 	}
 
 	var sb strings.Builder
@@ -113,7 +132,7 @@ func (tb *Bot) onTop(ctx context.Context, b *bot.Bot, u *models.Update) {
 		sb.WriteString(breakdownHTML(u.PositiveGiven, u.NegativeGiven))
 		sb.WriteString("\n")
 	}
-	sendEphemeral(ctx, b, msg.Chat.ID, msg.ID, sb.String(), tb.ttl)
+	return sb.String(), nil
 }
 
 func (tb *Bot) onPlusRep(ctx context.Context, b *bot.Bot, u *models.Update) {
@@ -132,17 +151,8 @@ func (tb *Bot) onPremiddle(ctx context.Context, b *bot.Bot, u *models.Update) {
 	tb.rememberParticipants(ctx, msg)
 
 	duration := time.Duration(rand.Int31n(29)+1) * time.Minute
-	until := time.Now().Add(duration).Unix()
 
-	_, err := b.RestrictChatMember(ctx, &bot.RestrictChatMemberParams{
-		ChatID: msg.Chat.ID,
-		UserID: msg.From.ID,
-		// TODO(dami): add CanSendOtherMessages permission after bug fix
-		// See: https://github.com/go-telegram/bot/issues/271
-		Permissions: &models.ChatPermissions{},
-		UntilDate:   int(until),
-	})
-	if err != nil {
+	if err := muteUser(ctx, b, msg.Chat.ID, msg.From.ID, duration); err != nil {
 		log.Printf("onPremiddle: RestrictChatMember: %v", err)
 		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID,
 			"⚠️ Не могу замутить — нужны права админа (Restrict members).", tb.ttl)
@@ -227,7 +237,7 @@ func (tb *Bot) handleExplicitRep(ctx context.Context, b *bot.Bot, u *models.Upda
 		return
 	}
 
-	tb.applyAndReport(ctx, b, msg, targetUser, delta, msg.ID)
+	tb.applyAndReport(ctx, b, msg, targetUser, delta, explicitReactMessageID(msg, targetSpec))
 }
 
 func (tb *Bot) resolveTarget(ctx context.Context, b *bot.Bot, msg *models.Message, spec string) (*models.User, error) {
@@ -276,41 +286,51 @@ func (tb *Bot) applyAndReport(ctx context.Context, b *bot.Bot, msg *models.Messa
 	}
 
 	switch res.Reason {
-	case reputation.ReasonOK:
+	case ports.ReasonOK:
 		positive := res.AppliedDelta > 0
 		if err := reactThumb(ctx, b, msg.Chat.ID, reactMsgID, positive); err != nil {
 			log.Printf("applyAndReport: reactThumb: %v", err)
+		}
+		var coinLine string
+		if positive {
+			account, err := tb.economy.Award(ctx, msg.Chat.ID, knownFromUser(target), int64(res.AppliedDelta), "positive_rep", int64(msg.ID))
+			if err != nil {
+				log.Printf("applyAndReport: economy.Award: %v", err)
+			} else {
+				coinLine = fmt.Sprintf("\n└ +<b>%d</b> ASNC-coin, баланс: <b>%d</b>", res.AppliedDelta, account.Balance)
+			}
 		}
 		icon := "📈"
 		if !positive {
 			icon = "📉"
 		}
 		text := fmt.Sprintf(
-			"%s %s → <b>%s</b> репутации\n└ итого: <b>%s</b>  %s",
+			"%s %s → <b>%s</b> репутации\n└ итого: <b>%s</b>  %s%s",
 			icon,
 			mentionHTML(target),
 			signedDelta(res.AppliedDelta),
 			scoreHTML(res.NewScore),
 			breakdownHTML(res.PositiveTotal, res.NegativeTotal),
+			coinLine,
 		)
 		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID, text, tb.ttl)
 
-	case reputation.ReasonSelf:
+	case ports.ReasonSelf:
 		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID,
 			"Нельзя менять репутацию <b>самому себе</b>.", tb.ttl)
 
-	case reputation.ReasonBotTarget:
+	case ports.ReasonBotTarget:
 		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID,
 			"<b>Ботам</b> нельзя менять репутацию.", tb.ttl)
 
-	case reputation.ReasonCooldown:
+	case ports.ReasonCooldown:
 		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID,
 			fmt.Sprintf("Подожди ещё <b>%s</b>, прежде чем снова менять репутацию %s.",
 				html.EscapeString(humanDuration(res.CooldownLeft)),
 				mentionHTML(target)),
 			tb.ttl)
 
-	case reputation.ReasonZeroDelta:
+	case ports.ReasonZeroDelta:
 		return
 	}
 }
@@ -331,8 +351,8 @@ func (tb *Bot) rememberParticipants(ctx context.Context, msg *models.Message) {
 	}
 }
 
-func knownFromUser(u *models.User) storage.KnownUser {
-	return storage.KnownUser{
+func knownFromUser(u *models.User) ports.KnownUser {
+	return ports.KnownUser{
 		UserID:    u.ID,
 		Username:  u.Username,
 		FirstName: u.FirstName,
@@ -341,7 +361,14 @@ func knownFromUser(u *models.User) storage.KnownUser {
 	}
 }
 
-func userFromKnown(k storage.KnownUser) *models.User {
+func parseReputationTrigger(msg *models.Message) *reputation.Trigger {
+	if msg.Sticker != nil {
+		return reputation.ParseSticker(msg.Sticker.FileUniqueID)
+	}
+	return reputation.ParseText(msg.Text)
+}
+
+func userFromKnown(k ports.KnownUser) *models.User {
 	return &models.User{
 		ID:        k.UserID,
 		Username:  k.Username,
@@ -359,6 +386,13 @@ func commandArgs(text string) ([]string, error) {
 	return fields[1:], nil
 }
 
+func explicitReactMessageID(msg *models.Message, targetSpec string) int {
+	if targetSpec == "" && msg.ReplyToMessage != nil {
+		return msg.ReplyToMessage.ID
+	}
+	return msg.ID
+}
+
 func resolveUser(ctx context.Context, b *bot.Bot, chatID, userID int64) (*models.User, error) {
 	cm, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{
 		ChatID: chatID,
@@ -368,6 +402,19 @@ func resolveUser(ctx context.Context, b *bot.Bot, chatID, userID int64) (*models
 		return nil, err
 	}
 	return userFromChatMember(cm)
+}
+
+func muteUser(ctx context.Context, b *bot.Bot, chatID, userID int64, duration time.Duration) error {
+	until := time.Now().Add(duration).Unix()
+	_, err := b.RestrictChatMember(ctx, &bot.RestrictChatMemberParams{
+		ChatID: chatID,
+		UserID: userID,
+		// TODO(dami): add CanSendOtherMessages permission after bug fix
+		// See: https://github.com/go-telegram/bot/issues/271
+		Permissions: &models.ChatPermissions{},
+		UntilDate:   int(until),
+	})
+	return err
 }
 
 func userFromChatMember(cm *models.ChatMember) (*models.User, error) {
@@ -405,8 +452,8 @@ func isGroupChat(t models.ChatType) bool {
 	return t == models.ChatTypeGroup || t == models.ChatTypeSupergroup
 }
 
-func actorFromUser(u *models.User) reputation.Actor {
-	return reputation.Actor{
+func actorFromUser(u *models.User) ports.Actor {
+	return ports.Actor{
 		UserID:      u.ID,
 		Username:    u.Username,
 		DisplayName: strings.TrimSpace(u.FirstName + " " + u.LastName),

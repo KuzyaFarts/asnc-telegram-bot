@@ -2,8 +2,6 @@ package reputation
 
 import (
 	"regexp"
-
-	"github.com/go-telegram/bot/models"
 )
 
 var trigger = regexp.MustCompile(`(?i)^([+]+|[-]+)(rep|реп)(?:$|\s|[[:punct:]])`)
@@ -41,24 +39,17 @@ var (
 	}
 )
 
-func Parse(msg *models.Message) *Trigger {
-	if msg.Sticker != nil {
-		return parseSticker(msg.Sticker)
+func ParseSticker(fileUniqueID string) *Trigger {
+	if info, ok := plusRepStickerIDs[fileUniqueID]; ok {
+		return &Trigger{Delta: info.Value}
 	}
-	return parseText(msg.Text)
-}
-
-func parseSticker(sticker *models.Sticker) *Trigger {
-	if _, ok := plusRepStickerIDs[sticker.FileUniqueID]; ok {
-		return &Trigger{Delta: plusRepStickerIDs[sticker.FileUniqueID].Value}
-	}
-	if _, ok := minusRepStickerIDs[sticker.FileUniqueID]; ok {
-		return &Trigger{Delta: minusRepStickerIDs[sticker.FileUniqueID].Value}
+	if info, ok := minusRepStickerIDs[fileUniqueID]; ok {
+		return &Trigger{Delta: info.Value}
 	}
 	return nil
 }
 
-func parseText(text string) *Trigger {
+func ParseText(text string) *Trigger {
 	m := trigger.FindStringSubmatch(text)
 	if m == nil {
 		return nil
