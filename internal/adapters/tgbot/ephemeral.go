@@ -40,6 +40,15 @@ func sendEphemeral(ctx context.Context, b *bot.Bot, chatID int64, replyTo int, h
 	})
 }
 
+func deleteCommandMessage(ctx context.Context, b *bot.Bot, chatID int64, msgID int) {
+	if _, err := b.DeleteMessage(ctx, &bot.DeleteMessageParams{
+		ChatID:    chatID,
+		MessageID: msgID,
+	}); err != nil {
+		log.Printf("deleteCommandMessage: %v", err)
+	}
+}
+
 func reactThumb(ctx context.Context, b *bot.Bot, chatID int64, msgID int, positive bool) error {
 	_, err := b.SetMessageReaction(ctx, &bot.SetMessageReactionParams{
 		ChatID:    chatID,

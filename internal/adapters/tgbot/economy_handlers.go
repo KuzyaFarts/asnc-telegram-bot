@@ -229,7 +229,7 @@ func (tb *Bot) onAcceptDuel(ctx context.Context, b *bot.Bot, u *models.Update) {
 	sendEphemeral(ctx, b, msg.Chat.ID, msg.ID,
 		fmt.Sprintf("⚔️ Дуэль завершена\n└ победитель: %s, выигрыш: <b>%d</b> ASNC-coin",
 			mentionHTML(winner), res.Duel.Stake),
-		tb.ttl)
+		20*time.Second)
 }
 
 func (tb *Bot) onCancelDuel(ctx context.Context, b *bot.Bot, u *models.Update) {
@@ -269,6 +269,9 @@ func (tb *Bot) onMuteDuel(ctx context.Context, b *bot.Bot, u *models.Update) {
 	if err != nil {
 		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID, "🤐 "+html.EscapeString(err.Error()), tb.ttl)
 		return
+	}
+	if minutes > 60 {
+		minutes = 60
 	}
 	res, err := tb.economy.CreateMuteDuel(ctx, msg.Chat.ID, knownFromUser(msg.From), knownFromUser(target), minutes)
 	if errors.Is(err, economy.ErrSelfDuel) {
@@ -328,7 +331,7 @@ func (tb *Bot) onAcceptMuteDuel(ctx context.Context, b *bot.Bot, u *models.Updat
 	sendEphemeral(ctx, b, msg.Chat.ID, msg.ID,
 		fmt.Sprintf("🤐 Мут-дуэль завершена\n└ победитель: %s, проигравший %s молчит <b>%d</b> мин.",
 			mentionHTML(winner), mentionHTML(loser), res.Duel.Stake),
-		tb.ttl)
+		20*time.Second)
 }
 
 func (tb *Bot) onCancelMuteDuel(ctx context.Context, b *bot.Bot, u *models.Update) {

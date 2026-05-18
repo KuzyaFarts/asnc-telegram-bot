@@ -477,24 +477,24 @@ func actorFromUser(u *models.User) ports.Actor {
 
 func mentionHTML(u *models.User) string {
 	if u.Username != "" {
-		return "@" + html.EscapeString(u.Username)
+		return "<code>@" + html.EscapeString(u.Username) + "</code>"
 	}
 	name := strings.TrimSpace(u.FirstName + " " + u.LastName)
 	if name == "" {
 		name = fmt.Sprintf("id%d", u.ID)
 	}
-	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, u.ID, html.EscapeString(name))
+	return "<b>" + html.EscapeString(name) + "</b>"
 }
 
 func storedUserHTML(username, displayName string, userID int64) string {
 	if username != "" {
-		return "@" + html.EscapeString(username)
+		return "<code>@" + html.EscapeString(username) + "</code>"
 	}
 	name := displayName
 	if name == "" {
 		name = fmt.Sprintf("id%d", userID)
 	}
-	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, userID, html.EscapeString(name))
+	return "<b>" + html.EscapeString(name) + "</b>"
 }
 
 func signedDelta(d int) string {
