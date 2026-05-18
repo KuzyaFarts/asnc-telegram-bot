@@ -67,8 +67,15 @@ func (tb *Bot) Run(ctx context.Context) error {
 func withCommandCleanup(h bot.HandlerFunc) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, u *models.Update) {
 		h(ctx, b, u)
-		if u.Message != nil {
-			deleteCommandMessage(ctx, b, u.Message.Chat.ID, u.Message.ID)
+		if u.Message == nil {
+			return
 		}
+		chatID := u.Message.Chat.ID
+		msgID := u.Message.ID
+		time.AfterFunc(10*time.Second, func() {
+			delCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			deleteCommandMessage(delCtx, b, chatID, msgID)
+		})
 	}
 }

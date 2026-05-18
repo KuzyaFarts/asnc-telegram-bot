@@ -147,7 +147,7 @@ func openAISummarizeStream(ctx context.Context, apiKey, chat string, onChunk fun
 	reqBody := openAIRequest{
 		Model:               "gpt-5",
 		Stream:              true,
-		MaxCompletionTokens: 6500,
+		MaxCompletionTokens: 5500,
 		Messages: []openAIMessage{
 			{
 				Role:    "system",
