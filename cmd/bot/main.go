@@ -43,7 +43,7 @@ func main() {
 		DuelTTL:       cfg.DuelTTL,
 	})
 
-	tb, err := tgbot.New(cfg.BotToken, repSvc, economySvc, cfg.EphemeralTTL)
+	tb, err := tgbot.New(cfg.BotToken, repSvc, economySvc, store, cfg.OpenAIKey, cfg.EphemeralTTL)
 	if err != nil {
 		log.Fatalf("bot: %v", err)
 	}

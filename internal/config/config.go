@@ -20,6 +20,7 @@ type Config struct {
 	DailyMax      int64
 	DailyCooldown time.Duration
 	DuelTTL       time.Duration
+	OpenAIKey     string
 }
 
 func Load() (*Config, error) {
@@ -98,6 +99,7 @@ func Load() (*Config, error) {
 		DailyMax:      int64(dailyMax),
 		DailyCooldown: dailyCooldown,
 		DuelTTL:       duelTTL,
+		OpenAIKey:     os.Getenv("OPENAI_API_KEY"),
 	}, nil
 }
 

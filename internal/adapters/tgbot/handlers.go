@@ -31,6 +31,20 @@ func (tb *Bot) onMessage(ctx context.Context, b *bot.Bot, u *models.Update) {
 	if msg.From == nil {
 		return
 	}
+
+	if msg.Text != "" && !strings.HasPrefix(msg.Text, "/") {
+		name := msg.From.FirstName
+		uname := msg.From.Username
+		_ = tb.msgStore.SaveMessage(ctx, ports.ChatMessage{
+			ChatID:    msg.Chat.ID,
+			UserID:    msg.From.ID,
+			FirstName: name,
+			Username:  uname,
+			Text:      msg.Text,
+			CreatedAt: time.Now().UTC(),
+		})
+	}
+
 	if msg.ReplyToMessage == nil {
 		return
 	}

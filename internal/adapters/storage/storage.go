@@ -516,6 +516,50 @@ func (s *SQLite) getDuel(ctx context.Context, q string, args ...any) (ports.Duel
 	return d, true, nil
 }
 
+func (s *SQLite) SaveMessage(ctx context.Context, msg ports.ChatMessage) error {
+	const q = `
+INSERT INTO chat_messages (chat_id, user_id, first_name, username, text, created_at)
+VALUES (?, ?, ?, ?, ?, ?);`
+	if _, err := s.db.ExecContext(ctx, q,
+		msg.ChatID, msg.UserID, msg.FirstName, msg.Username, msg.Text, msg.CreatedAt.Unix()); err != nil {
+		return fmt.Errorf("save message: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLite) GetTodayMessages(ctx context.Context, chatID int64) ([]ports.ChatMessage, error) {
+	now := time.Now().UTC()
+	todayMidnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	const q = `
+SELECT id, chat_id, user_id, first_name, username, text, created_at
+FROM chat_messages
+WHERE chat_id = ? AND created_at >= ?
+ORDER BY created_at ASC
+LIMIT 300;`
+	rows, err := s.db.QueryContext(ctx, q, chatID, todayMidnight.Unix())
+	if err != nil {
+		return nil, fmt.Errorf("get today messages: %w", err)
+	}
+	defer rows.Close()
+
+	var out []ports.ChatMessage
+	for rows.Next() {
+		var (
+			m  ports.ChatMessage
+			ts int64
+		)
+		if err := rows.Scan(&m.ID, &m.ChatID, &m.UserID, &m.FirstName, &m.Username, &m.Text, &ts); err != nil {
+			return nil, fmt.Errorf("scan message: %w", err)
+		}
+		m.CreatedAt = time.Unix(ts, 0)
+		out = append(out, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func unix(t time.Time) int64 {
 	if t.IsZero() {
 		return 0

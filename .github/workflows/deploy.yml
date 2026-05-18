@@ -9,7 +9,7 @@ env:
   DEPLOY_DIR: /root/asnc-telegram-bot
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,14 +17,26 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: true
 
       - name: Run tests
         run: go test ./...
 
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
       - name: Build binary
         run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${{ env.BINARY_NAME }} ./cmd/bot
 
-      - name: Deploy via SSH
+      - name: Copy binary to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}

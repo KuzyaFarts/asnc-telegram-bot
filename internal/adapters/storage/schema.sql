@@ -83,3 +83,16 @@ CREATE TABLE IF NOT EXISTS duels (
 
 CREATE INDEX IF NOT EXISTS idx_duels_pending
     ON duels (chat_id, challenger_id, opponent_id, kind, status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id    INTEGER NOT NULL,
+    user_id    INTEGER NOT NULL,
+    first_name TEXT    NOT NULL DEFAULT '',
+    username   TEXT    NOT NULL DEFAULT '',
+    text       TEXT    NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_date
+    ON chat_messages (chat_id, created_at DESC);
