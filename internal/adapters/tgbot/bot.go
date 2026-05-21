@@ -53,6 +53,7 @@ func New(token string, svc ports.ReputationUseCase, economy ports.EconomyUseCase
 	api.RegisterHandler(bot.HandlerTypeMessageText, "games", bot.MatchTypeCommandStartOnly, withCommandCleanup(tb.onHelp))
 	api.RegisterHandler(bot.HandlerTypeMessageText, "buy", bot.MatchTypeCommandStartOnly, withCommandCleanup(tb.onBuy))
 	api.RegisterHandler(bot.HandlerTypeCallbackQueryData, "buy_", bot.MatchTypePrefix, tb.onBuyCallback)
+	api.RegisterHandler(bot.HandlerTypeMessageText, "give", bot.MatchTypeCommandStartOnly, withCommandCleanup(tb.onGive))
 
 	return tb, nil
 }

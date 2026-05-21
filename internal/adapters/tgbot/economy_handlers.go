@@ -485,13 +485,13 @@ func coinTopHTML(dashboard ports.EconomyDashboard, title string, includeRep bool
 
 func knownUserHTML(user ports.KnownUser) string {
 	if user.Username != "" {
-		return "@" + html.EscapeString(user.Username)
+		return "<code>@" + html.EscapeString(user.Username) + "</code>"
 	}
 	name := strings.TrimSpace(user.FirstName + " " + user.LastName)
 	if name == "" {
 		name = fmt.Sprintf("id%d", user.UserID)
 	}
-	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, user.UserID, html.EscapeString(name))
+	return "<b>" + html.EscapeString(name) + "</b>"
 }
 
 func rank(balance, score int64) string {

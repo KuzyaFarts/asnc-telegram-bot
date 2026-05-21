@@ -3,6 +3,7 @@ package tgbot
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/go-telegram/bot"
@@ -150,4 +151,46 @@ func (tb *Bot) onSuccessfulPayment(ctx context.Context, b *bot.Bot, msg *models.
 		),
 		ParseMode: models.ParseModeHTML,
 	})
+}
+
+func (tb *Bot) onGive(ctx context.Context, b *bot.Bot, u *models.Update) {
+	msg := u.Message
+	if msg == nil || !isGroupChat(msg.Chat.Type) || msg.From == nil {
+		return
+	}
+
+	cm, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{ChatID: msg.Chat.ID, UserID: msg.From.ID})
+	if err != nil {
+		return
+	}
+	if cm.Type != models.ChatMemberTypeOwner && cm.Type != models.ChatMemberTypeAdministrator {
+		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID, "⛔ Только администраторы могут использовать /give.", tb.ttl)
+		return
+	}
+
+	args, _ := commandArgs(msg.Text)
+	if len(args) != 2 {
+		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID, "Использование: <code>/give @user 87</code>", tb.ttl)
+		return
+	}
+	amount, err := strconv.ParseInt(args[1], 10, 64)
+	if err != nil || amount <= 0 {
+		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID, "Количество монет должно быть положительным числом.", tb.ttl)
+		return
+	}
+
+	target, err := tb.resolveTarget(ctx, b, msg, args[0])
+	if err != nil {
+		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID, "⚠️ "+err.Error(), tb.ttl)
+		return
+	}
+
+	acc, err := tb.economy.Award(ctx, msg.Chat.ID, knownFromUser(target), amount, "admin_give", int64(msg.ID))
+	if err != nil {
+		sendEphemeral(ctx, b, msg.Chat.ID, msg.ID, "⚠️ Не удалось зачислить монеты.", tb.ttl)
+		return
+	}
+	sendEphemeral(ctx, b, msg.Chat.ID, msg.ID,
+		fmt.Sprintf("✅ %s зачислено <b>%d</b> ASNC-coin\n└ баланс: <b>%d</b>", mentionHTML(target), amount, acc.Balance),
+		tb.ttl)
 }
