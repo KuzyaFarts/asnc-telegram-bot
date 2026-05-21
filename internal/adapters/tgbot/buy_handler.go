@@ -74,6 +74,19 @@ func (tb *Bot) onBuyCallback(ctx context.Context, b *bot.Bot, u *models.Update) 
 		return
 	}
 	chatID := cq.Message.Message.Chat.ID
+	msgID := cq.Message.Message.ID
+
+	label := fmt.Sprintf("⭐ %d Stars → %d ASNC-coin", pkg.Stars, pkg.Coins)
+	if pkg.Bonus != "" {
+		label += " " + pkg.Bonus
+	}
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    chatID,
+		MessageID: msgID,
+		Text:      fmt.Sprintf("💰 <b>Купить ASNC-coin за Telegram Stars</b>\n\n%s\n\n⏳ Выставляем счёт...", label),
+		ParseMode: models.ParseModeHTML,
+	})
+
 	b.SendInvoice(ctx, &bot.SendInvoiceParams{
 		ChatID:      chatID,
 		Title:       "ASNC-coin",

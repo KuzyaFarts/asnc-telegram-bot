@@ -20,9 +20,17 @@ import (
 )
 
 func (tb *Bot) onMessage(ctx context.Context, b *bot.Bot, u *models.Update) {
+	if u.PreCheckoutQuery != nil {
+		tb.onPreCheckoutQuery(ctx, b, u)
+		return
+	}
 
 	msg := u.Message
 	if msg == nil {
+		return
+	}
+	if msg.SuccessfulPayment != nil {
+		tb.onSuccessfulPayment(ctx, b, msg)
 		return
 	}
 	if !isGroupChat(msg.Chat.Type) {
@@ -30,15 +38,6 @@ func (tb *Bot) onMessage(ctx context.Context, b *bot.Bot, u *models.Update) {
 	}
 	tb.rememberParticipants(ctx, msg)
 	if msg.From == nil {
-		return
-	}
-
-	if u.PreCheckoutQuery != nil {
-		tb.onPreCheckoutQuery(ctx, b, u)
-		return
-	}
-	if msg.SuccessfulPayment != nil {
-		tb.onSuccessfulPayment(ctx, b, msg)
 		return
 	}
 
