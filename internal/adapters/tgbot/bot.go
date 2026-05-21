@@ -12,17 +12,15 @@ import (
 )
 
 type Bot struct {
-	api       *bot.Bot
-	svc       ports.ReputationUseCase
-	economy   ports.EconomyUseCase
-	msgStore  ports.MessageStore
-	openAIKey string
-	ttl       time.Duration
+	api     *bot.Bot
+	svc     ports.ReputationUseCase
+	economy ports.EconomyUseCase
+	ttl     time.Duration
 }
 
-func New(token string, svc ports.ReputationUseCase, economy ports.EconomyUseCase, msgStore ports.MessageStore, openAIKey string, ttl time.Duration) (*Bot, error) {
+func New(token string, svc ports.ReputationUseCase, economy ports.EconomyUseCase, ttl time.Duration) (*Bot, error) {
 
-	tb := &Bot{svc: svc, economy: economy, msgStore: msgStore, openAIKey: openAIKey, ttl: ttl}
+	tb := &Bot{svc: svc, economy: economy, ttl: ttl}
 
 	opts := []bot.Option{
 		bot.WithDefaultHandler(tb.onMessage),
@@ -53,7 +51,8 @@ func New(token string, svc ports.ReputationUseCase, economy ports.EconomyUseCase
 	api.RegisterHandler(bot.HandlerTypeMessageText, "cancel_mute_duel", bot.MatchTypeCommandStartOnly, withCommandCleanup(tb.onCancelMuteDuel))
 	api.RegisterHandler(bot.HandlerTypeMessageText, "help", bot.MatchTypeCommandStartOnly, withCommandCleanup(tb.onHelp))
 	api.RegisterHandler(bot.HandlerTypeMessageText, "games", bot.MatchTypeCommandStartOnly, withCommandCleanup(tb.onHelp))
-	api.RegisterHandler(bot.HandlerTypeMessageText, "summary", bot.MatchTypeCommandStartOnly, withCommandCleanup(tb.onSummary))
+	api.RegisterHandler(bot.HandlerTypeMessageText, "buy", bot.MatchTypeCommandStartOnly, withCommandCleanup(tb.onBuy))
+	api.RegisterHandler(bot.HandlerTypeCallbackQueryData, "buy_", bot.MatchTypePrefix, tb.onBuyCallback)
 
 	return tb, nil
 }

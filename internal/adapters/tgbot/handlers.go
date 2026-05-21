@@ -16,6 +16,7 @@ import (
 
 	"github.com/KuzyaFarts/asnc-telegram-bot/internal/ports"
 	"github.com/KuzyaFarts/asnc-telegram-bot/internal/reputation"
+
 )
 
 func (tb *Bot) onMessage(ctx context.Context, b *bot.Bot, u *models.Update) {
@@ -32,17 +33,13 @@ func (tb *Bot) onMessage(ctx context.Context, b *bot.Bot, u *models.Update) {
 		return
 	}
 
-	if msg.Text != "" && !strings.HasPrefix(msg.Text, "/") {
-		name := msg.From.FirstName
-		uname := msg.From.Username
-		_ = tb.msgStore.SaveMessage(ctx, ports.ChatMessage{
-			ChatID:    msg.Chat.ID,
-			UserID:    msg.From.ID,
-			FirstName: name,
-			Username:  uname,
-			Text:      msg.Text,
-			CreatedAt: time.Now().UTC(),
-		})
+	if u.PreCheckoutQuery != nil {
+		tb.onPreCheckoutQuery(ctx, b, u)
+		return
+	}
+	if msg.SuccessfulPayment != nil {
+		tb.onSuccessfulPayment(ctx, b, msg)
+		return
 	}
 
 	if msg.ReplyToMessage == nil {
